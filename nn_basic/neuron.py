@@ -13,21 +13,34 @@ class ParamModule(ABC):
             p.grad = 0.0
     
 class Neuron(ParamModule):
-    def __init__(self, dimension):
+    def __init__(self, dimension, activation=tanh):
         import random
         self.w = [Value(random.uniform(-1, 1)) for _ in range (dimension)]
         self.b = Value(random.uniform(-1, 1))
-        self.f = lambda x: x.tanh()
-    
-    def activation(self, f):
-        self.f = f
-    
+        self.activation = activation
+
+    def set_activation(self, activation):
+        if callable(activation):
+            self.f = activation
+        else:
+            act_name = activation.lower()
+            if act_name == 'tanh':
+                self.f = lambda x: x.tanh()
+            elif act_name == 'relu':
+                self.f = lambda x: x.relu()
+            elif act_name == 'sigmoid':
+                self.f = lambda x: (1 / (1 + (-x).exp()))
+            elif act_name == 'identity' or act_name == 'linear':
+                self.f = lambda x: x
+            else:
+                raise ValueError(f"Unsupported activation: {activation}")
+
     def __call__(self, x):
         act = sum(((wi * xi) for wi, xi in zip(self.w, x)), self.b)
-        return self.f(act)
+        return self.activation(act)
     
     def parameters(self):
-        return self.w + [self.b]
+        return self.w + [self.b]    
     
         
 class Layer(ParamModule):
